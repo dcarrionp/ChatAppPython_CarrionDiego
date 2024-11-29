@@ -27,41 +27,50 @@ class Servidor:
 
         self.running = False
 
-        #Creación de la ventana principal de la GUI
+        # Creación de la ventana principal de la GUI
         self.window = tk.Tk()
         self.window.title("Servidor Chat")
+        self.window.geometry("700x500")
 
         # Estableciendo un estilo visual para la ventana
-        self.window.configure(bg='#2D2D2D')  # Color de fondo oscuro
+        self.window.configure(bg='#1E1E2E')  # Fondo oscuro y elegante
 
         # Configuración de la fuente
         font_style = ('Arial', 12)
         button_font = ('Arial', 10, 'bold')
 
         # Área de logs con scroll
-        self.log_area = scrolledtext.ScrolledText(self.window, height=20, width=70, state='disabled', bg="#333333", fg="#FFFFFF", font=font_style)
-        self.log_area.grid(row=0, column=0, columnspan=3, padx=10, pady=10)
+        self.log_area = scrolledtext.ScrolledText(self.window, height=20, width=50, state='disabled',
+                                                  bg="#2E2E3E", fg="#A9B7C6", font=font_style)
+        self.log_area.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
 
-        # Botones para el control del servidor
+        # Botones en el lado izquierdo
+        button_frame = tk.Frame(self.window, bg="#1E1E2E")
+        button_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ns")
+
+        self.start_button = Button(button_frame, text="Iniciar Servidor", command=self.start_server,
+                                   font=button_font, bg="#4CAF50", fg="white", width=20)
+        self.start_button.grid(row=0, column=0, padx=5, pady=5)
+
+        self.join_button = Button(button_frame, text="Unirse al Servidor", command=self.launch_client,
+                                  font=button_font, bg="#2196F3", fg="white", width=20)
+        self.join_button.grid(row=1, column=0, padx=5, pady=5)
+
+        self.stop_button = Button(button_frame, text="Detener Servidor", command=self.stop_server,
+                                  state='disabled', font=button_font, bg="#F44336", fg="white", width=20)
+        self.stop_button.grid(row=2, column=0, padx=5, pady=5)
+
+        # Clave Fernet (solo para mostrar)
         self.key_entry = tk.Entry(self.window, fg="blue", width=70)
-        self.key_entry.grid(row=2, column=0, columnspan=2, padx=10, pady=5)
+        self.key_entry.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
         self.key_entry.insert(0, self.key.decode())
         self.key_entry.configure(state='readonly')
 
-        # Botones para el control del servidor
-        self.start_button = Button(self.window, text="Iniciar Servidor", command=self.start_server, font=button_font, bg="#4CAF50", fg="white")
-        self.start_button.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
-
-        self.join_button = Button(self.window, text="Unirse al Servidor", command=self.launch_client, font=button_font, bg="#2196F3", fg="white")
-        self.join_button.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
-
-        self.stop_button = Button(self.window, text="Detener Servidor", command=self.stop_server, state='disabled', font=button_font, bg="#F44336", fg="white")
-        self.stop_button.grid(row=1, column=2, padx=10, pady=10, sticky="ew")
+        # Configuración de estiramiento
+        self.window.grid_rowconfigure(0, weight=1)
+        self.window.grid_columnconfigure(1, weight=1)
 
         # Finaliza la configuración de la ventana
-        self.window.protocol("WM_DELETE_WINDOW", self.on_closing)
-        self.window.mainloop()
-
         self.window.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.window.mainloop()
 
@@ -71,7 +80,7 @@ class Servidor:
                 return json.load(file)
         except FileNotFoundError:
             return []
-        
+
     def guardar_mensaje(self, mensaje):
         self.mensajes_historicos.append(mensaje)
         with open('historial_mensajes.json', 'w') as file:
@@ -123,10 +132,8 @@ class Servidor:
                 self.log_message(f"Conexión aceptada desde {addr}")
                 self.enviar_historial(conn)
             except socket.error:
-                # Manejar errores típicos, como 'blocking io operation', etc.
                 pass
             except Exception as e:
-                # Otros errores
                 print(f"Error: {e}")
 
     def procesarCon(self):
@@ -148,7 +155,6 @@ class Servidor:
                     print(f"Error: {e}")
             for c in to_remove:
                 self.clientes.remove(c)
-
 
     def msg_to_all(self, msg, cliente):
         for c in self.clientes:
@@ -172,5 +178,7 @@ class Servidor:
         # Inicia una nueva ventana del cliente
         client_window = Toplevel(self.window)
         Cliente(host="localhost", port=4000, master=client_window)
+
+
 if __name__ == "__main__":
     Servidor()
