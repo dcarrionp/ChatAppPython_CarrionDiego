@@ -90,6 +90,7 @@ class Cliente:
         if not self.master:
             self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
             self.root.mainloop()
+        self.msg_area.tag_configure('default', foreground="#FFFFFF")
 
     def connect_to_server(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -132,10 +133,15 @@ class Cliente:
                     encrypted_message = pickle.loads(data)
                     message = self.cipher.decrypt(encrypted_message).decode()
                     self.display_message(message, 'received')
-            except Exception as e:
-                print(f"Error: {e}")
+            except socket.error:
+                self.log_message("Conexión perdida. Intentando reconectar...")
                 self.reconnect()
                 break
+            except Exception as e:
+                self.log_message(f"Error inesperado: {e}")
+                self.reconnect()
+                break
+
 
     def display_message(self, message, tag):
         self.msg_area.configure(state='normal')
@@ -149,6 +155,36 @@ class Cliente:
         finally:
             self.sock.close()
             self.root.destroy()
+
+    def reconnect(self):
+        self.log_message("Conexión perdida. Intentando reconectar...")
+        attempts = 5  # Maximum number of reconnection attempts
+        for attempt in range(1, attempts + 1):
+            try:
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.sock.connect((self.host, self.port))
+                threading.Thread(target=self.msg_recv, daemon=True).start()
+                self.log_message("Reconexión exitosa.")
+                return
+            except socket.error:
+                self.log_message(f"Intento {attempt} de {attempts} fallido. Reintentando en 5 segundos...")
+                time.sleep(5)
+        self.log_message("No fue posible reconectar al servidor después de varios intentos.")
+        messagebox.showerror("Error de Conexión", "No fue posible reconectar al servidor.")
+        self.root.destroy()
+
+    
+
+    def log_message(self, message):
+        if hasattr(self, 'msg_area'):  # Check if the GUI is initialized
+            self.msg_area.configure(state='normal')
+            self.msg_area.insert(tk.END, message + "\n", 'default')
+            self.msg_area.yview(tk.END)
+            self.msg_area.configure(state='disabled')
+        else:
+            print(message)  # Fallback to console if the GUI is not available
+
+
 
 
 if __name__ == "__main__":
